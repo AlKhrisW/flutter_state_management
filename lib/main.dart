@@ -9,8 +9,11 @@ class MasterPlanApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-     theme: ThemeData(primarySwatch: Colors.purple),
-     home: PlanScreen(),
+      theme: ThemeData(
+        primarySwatch: Colors.purple,
+        useMaterial3:false,
+      ),
+      home: PlanScreen(),
     );
   }
 }
