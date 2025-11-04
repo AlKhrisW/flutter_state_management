@@ -1,5 +1,6 @@
 import '../models/data_layer.dart';
 import 'package:flutter/material.dart';
+import '../provider/plan_provider.dart';
 
 class PlanScreen extends StatefulWidget {
   const PlanScreen({super.key});
@@ -9,7 +10,6 @@ class PlanScreen extends StatefulWidget {
 }
 
 class _PlanScreenState extends State<PlanScreen> {
-  Plan plan = const Plan();
   late ScrollController scrollController;
 
   @override
@@ -21,79 +21,87 @@ class _PlanScreenState extends State<PlanScreen> {
       });
   }
   
+  // langkah 9 start
   @override
   Widget build(BuildContext context) {
-   return Scaffold(
-    // ganti ‘Namaku' dengan Nama panggilan Anda
-    appBar: AppBar(title: const Text('Master Plan Aldo')),
-    body: _buildList(),
-    floatingActionButton: _buildAddTaskButton(),
-   );
+    return Scaffold(
+      appBar: AppBar(title: const Text('Master Plan')),
+      body: ValueListenableBuilder<Plan>(
+        valueListenable: PlanProvider.of(context),
+        builder: (context, plan, child) {
+          return Column(
+            children: [
+              Expanded(child: _buildList(plan)), // langkah 8
+              SafeArea(child: Text(plan.completenessMessage))
+            ],
+          );
+        },
+      ),
+      floatingActionButton: _buildAddTaskButton(context),
+    );
   }
+  // langkah 9 end
 
-  Widget _buildAddTaskButton() {
+  // langkah 5 start
+  Widget _buildAddTaskButton(BuildContext context) {
+    ValueNotifier<Plan> planNotifier = PlanProvider.of(context);
     return FloatingActionButton(
       child: const Icon(Icons.add),
       onPressed: () {
-        setState(() {
-          plan = Plan(
-            name: plan.name,
-            tasks: List<Task>.from(plan.tasks)
-            ..add(const Task()),
-          );
-        });
+        Plan currentPlan = planNotifier.value;
+        planNotifier.value = Plan(
+          name: currentPlan.name,
+          tasks: List<Task>.from(currentPlan.tasks)..add(const Task()),
+        );
       },
     );
   }
+  // langkah 5 end
 
-  Widget _buildList() {
+  // langkah 7 start
+  Widget _buildList(Plan plan) {
     return ListView.builder(
       controller: scrollController,
-      keyboardDismissBehavior: 
-        Theme.of(context).platform
-         == TargetPlatform.iOS
-          ? ScrollViewKeyboardDismissBehavior.onDrag
-          : ScrollViewKeyboardDismissBehavior.manual,
       itemCount: plan.tasks.length,
-      itemBuilder: (context, index) =>
-      _buildTaskTile(plan.tasks[index], index),
+      itemBuilder: (context, index) => _buildTaskTile(plan.tasks[index], index, context),
     );
   }
+  // langkah 7 end
 
-  Widget _buildTaskTile(Task task, int index) {
+  // langkah 6 start
+  Widget _buildTaskTile(Task task, int index, BuildContext context) {
+    ValueNotifier<Plan> planNotifier = PlanProvider.of(context);
     return ListTile(
       leading: Checkbox(
         value: task.complete,
         onChanged: (selected) {
-          setState(() {
-            plan = Plan(
-              name: plan.name,
-              tasks: List<Task>.from(plan.tasks)
-                ..[index] = Task(
-                  description: task.description,
-                  complete: selected ?? false,
-                ),
-            );
-          });
-        }
-      ),
+          Plan currentPlan = planNotifier.value;
+          planNotifier.value = Plan(
+            name: currentPlan.name,
+            tasks: List<Task>.from(currentPlan.tasks)
+              ..[index] = Task(
+                description: task.description,
+                complete: selected ?? false,
+              ),
+          );
+        }),
       title: TextFormField(
         initialValue: task.description,
         onChanged: (text) {
-          setState(() {
-            plan = Plan(
-              name: plan.name,
-              tasks: List<Task>.from(plan.tasks)
-                ..[index] = Task(
-                  description: text,
-                  complete: task.complete,
-                ),
-            );
-          });
+          Plan currentPlan = planNotifier.value;
+          planNotifier.value = Plan(
+            name: currentPlan.name,
+            tasks: List<Task>.from(currentPlan.tasks)
+              ..[index] = Task(
+                description: text,
+                complete: task.complete,
+              ),
+          );
         },
       ),
     );
   }
+  // langkah 6 end
 
   @override
   void dispose() {
