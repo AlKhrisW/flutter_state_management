@@ -3,14 +3,20 @@ import 'package:flutter/material.dart';
 import '../provider/plan_provider.dart';
 
 class PlanScreen extends StatefulWidget {
-  const PlanScreen({super.key});
+  // langkah 3 start
+  final Plan plan;
+  const PlanScreen({super.key, required this.plan});
+  // langkah 3 end
 
   @override
   State createState() => _PlanScreenState();
 }
 
+// langkah 5 start
 class _PlanScreenState extends State<PlanScreen> {
   late ScrollController scrollController;
+  Plan get plan => widget.plan;
+  // langkah 5 end
 
   @override
   void initState() {
@@ -21,87 +27,108 @@ class _PlanScreenState extends State<PlanScreen> {
       });
   }
   
-  // langkah 9 start
+  // langkah 7 start
   @override
   Widget build(BuildContext context) {
+    ValueNotifier<List<Plan>> plansNotifier = PlanProvider.of(context);
+
     return Scaffold(
-      appBar: AppBar(title: const Text('Master Plan')),
-      body: ValueListenableBuilder<Plan>(
-        valueListenable: PlanProvider.of(context),
-        builder: (context, plan, child) {
+      appBar: AppBar(
+        title: Text(
+          plan.name)),
+      body: ValueListenableBuilder<List<Plan>>(
+        valueListenable: plansNotifier,
+        builder: (context, plans, child) {
+          Plan currentPlan = plans.firstWhere((p) => p.name == plan.name);
           return Column(
             children: [
-              Expanded(child: _buildList(plan)), // langkah 8
-              SafeArea(child: Text(plan.completenessMessage))
+              Expanded(child: _buildList(currentPlan, plansNotifier)),
+              SafeArea(child: Text(currentPlan.completenessMessage)),
             ],
           );
         },
       ),
-      floatingActionButton: _buildAddTaskButton(context),
+      floatingActionButton: _buildAddTaskButton(context, plansNotifier),
     );
   }
-  // langkah 9 end
 
-  // langkah 5 start
-  Widget _buildAddTaskButton(BuildContext context) {
-    ValueNotifier<Plan> planNotifier = PlanProvider.of(context);
+  Widget _buildAddTaskButton(BuildContext context, ValueNotifier<List<Plan>> planNotifier) {
     return FloatingActionButton(
+      backgroundColor: Colors.deepPurple,
       child: const Icon(Icons.add),
       onPressed: () {
-        Plan currentPlan = planNotifier.value;
-        planNotifier.value = Plan(
-          name: currentPlan.name,
-          tasks: List<Task>.from(currentPlan.tasks)..add(const Task()),
-        );
-      },
-    );
-  }
-  // langkah 5 end
+        Plan currentPlan = planNotifier.value
+            .firstWhere((p) => p.name == widget.plan.name, orElse: () => widget.plan);
 
-  // langkah 7 start
-  Widget _buildList(Plan plan) {
-    return ListView.builder(
-      controller: scrollController,
-      itemCount: plan.tasks.length,
-      itemBuilder: (context, index) => _buildTaskTile(plan.tasks[index], index, context),
+        int planIndex =
+            planNotifier.value.indexWhere((p) => p.name == currentPlan.name);
+
+        List<Task> updatedTasks = List<Task>.from(currentPlan.tasks)
+          ..add(const Task());
+
+        // update notifier agar rebuild
+        planNotifier.value = List<Plan>.from(planNotifier.value)
+          ..[planIndex] = Plan(
+            name: currentPlan.name,
+            tasks: updatedTasks,
+          );
+      },
     );
   }
   // langkah 7 end
 
-  // langkah 6 start
-  Widget _buildTaskTile(Task task, int index, BuildContext context) {
-    ValueNotifier<Plan> planNotifier = PlanProvider.of(context);
+  Widget _buildList(Plan plan, ValueNotifier<List<Plan>> planNotifier) {
+    return ListView.builder(
+      controller: scrollController,
+      itemCount: plan.tasks.length,
+      itemBuilder: (context, index) => _buildTaskTile(plan, plan.tasks[index], index, planNotifier),
+    );
+  }
+
+  // langkah 8 start
+  Widget _buildTaskTile(Plan plan, Task task, int index, ValueNotifier<List<Plan>> planNotifier) {
     return ListTile(
       leading: Checkbox(
         value: task.complete,
         onChanged: (selected) {
-          Plan currentPlan = planNotifier.value;
-          planNotifier.value = Plan(
-            name: currentPlan.name,
-            tasks: List<Task>.from(currentPlan.tasks)
-              ..[index] = Task(
-                description: task.description,
-                complete: selected ?? false,
-              ),
-          );
-        }),
+          int planIndex =
+              planNotifier.value.indexWhere((p) => p.name == plan.name);
+
+          List<Task> updatedTasks = List<Task>.from(plan.tasks)
+            ..[index] = Task(
+              description: task.description,
+              complete: selected ?? false,
+            );
+
+          planNotifier.value = List<Plan>.from(planNotifier.value)
+            ..[planIndex] = Plan(
+              name: plan.name,
+              tasks: updatedTasks,
+            );
+        },
+      ),
       title: TextFormField(
         initialValue: task.description,
         onChanged: (text) {
-          Plan currentPlan = planNotifier.value;
-          planNotifier.value = Plan(
-            name: currentPlan.name,
-            tasks: List<Task>.from(currentPlan.tasks)
-              ..[index] = Task(
-                description: text,
-                complete: task.complete,
-              ),
-          );
+          int planIndex =
+              planNotifier.value.indexWhere((p) => p.name == plan.name);
+
+          List<Task> updatedTasks = List<Task>.from(plan.tasks)
+            ..[index] = Task(
+              description: text,
+              complete: task.complete,
+            );
+
+          planNotifier.value = List<Plan>.from(planNotifier.value)
+            ..[planIndex] = Plan(
+              name: plan.name,
+              tasks: updatedTasks,
+            );
         },
       ),
     );
   }
-  // langkah 6 end
+  // langkah 8 end
 
   @override
   void dispose() {
